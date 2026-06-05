@@ -1,0 +1,8 @@
+{
+    "python.envFile": "${workspaceFolder}/.env",
+    "python.analysis.ignore": [
+        ".envExample",
+        ".env",
+        ".env.*"
+    ]
+}
