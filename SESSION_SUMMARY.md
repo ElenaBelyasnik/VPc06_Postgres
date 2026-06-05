@@ -25,6 +25,7 @@
 ### 3. Установка зависимостей
 - Установили `psycopg2-binary` через `pip install -r requirements.txt`
 - Установили `python-dotenv` для загрузки переменных из `.env`
+- Установили `python-dotenv` в виртуальное окружение (`.venv\Scripts\python.exe -m pip install python-dotenv`)
 
 ### 4. Структура проекта
 ```
@@ -38,14 +39,14 @@
 └── venv/                # Виртуальное окружение
 ```
 
-### 4. Настройки подключения к PostgreSQL
+### 5. Настройки подключения к PostgreSQL
 - **host:** localhost
 - **port:** 5432
 - **database:** test
 - **user:** postgres
 - **password:** postgres
 
-### 5. Работающие команды
+### 6. Работающие команды
 ```powershell
 # Запуск основного скрипта
 python main.py
