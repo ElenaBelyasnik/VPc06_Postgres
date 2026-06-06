@@ -105,19 +105,21 @@ class PostgreSQLDriver:
         
         return self.execute_query(query)
     
-    def drop_table(self, table_name: str, if_exists: bool = True) -> bool:
+    def drop_table(self, table_name: str, if_exists: bool = True, cascade: bool = False) -> bool:
         """
         Удаление таблицы.
         
         Args:
             table_name: Имя таблицы
             if_exists: Удалить если существует
+            cascade: Удалить зависимые объекты (внешние ключи и т.д.)
         
         Returns:
             True если успешно
         """
         if_exists_str = "IF EXISTS " if if_exists else ""
-        query = f"DROP TABLE {if_exists_str}{table_name}"
+        cascade_str = " CASCADE" if cascade else ""
+        query = f"DROP TABLE {if_exists_str}{table_name}{cascade_str}"
         return self.execute_query(query)
     
     def insert(self, table_name: str, data: Dict[str, Any], returning: Optional[str] = None) -> Optional[Any]:
@@ -135,11 +137,14 @@ class PostgreSQLDriver:
         columns = list(data.keys())
         values = list(data.values())
         
+        # Создаём плейсхолдеры %s для каждой колонки
+        placeholders = ", ".join(["%s"] * len(columns))
+        
         query = sql.SQL("INSERT INTO {table} ({columns}) VALUES ({values})")
         query = query.format(
             table=sql.Identifier(table_name),
             columns=sql.SQL(", ").join(map(sql.Identifier, columns)),
-            values=sql.SQL(", ").join(map(sql.Placeholder, values))
+            values=sql.SQL(placeholders)
         )
         
         if returning:
@@ -169,12 +174,15 @@ class PostgreSQLDriver:
         columns = list(data_list[0].keys())
         values_list = [list(record.values()) for record in data_list]
         
+        # Создаём плейсхолдеры %s для каждой колонки
+        placeholders = ", ".join(["%s"] * len(columns))
+        
         query = sql.SQL("INSERT INTO {table} ({columns}) VALUES {values}")
         query = query.format(
             table=sql.Identifier(table_name),
             columns=sql.SQL(", ").join(map(sql.Identifier, columns)),
             values=sql.SQL(", ").join(
-                sql.SQL("(") + sql.SQL(", ").join(map(sql.Placeholder, values_list[0])) + sql.SQL(")")
+                [sql.SQL("(" + placeholders + ")")] * len(values_list)
             )
         )
         
