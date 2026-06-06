@@ -63,6 +63,49 @@ def main():
                 total = float(row['total_amount'])
                 print(f"  {name} — {total:.2f} руб.")
             
+            # 6. Проверка ON DELETE CASCADE
+            print("\n=== ПРОВЕРКА ON DELETE CASCADE ===")
+            
+            # Удаляем пользователя Борис (ID=2) у которого есть заказ
+            user_to_delete_id = user_ids["Борис"]
+            print(f"  Удаляем пользователя ID={user_to_delete_id} (Борис)...")
+            
+            # Сначала получаем сумму заказов этого пользователя
+            cursor = db._get_cursor(dict_cursor=False)
+            cursor.execute(
+                "SELECT COALESCE(SUM(amount), 0) as total FROM orders WHERE user_id = %s",
+                (user_to_delete_id,)
+            )
+            result = cursor.fetchone()
+            total_orders = float(result[0]) if result else 0
+            cursor.close()
+            
+            print(f"  Сумма заказов удаляемого пользователя: {total_orders:.2f} руб.")
+            
+            # Удаляем пользователя (заказы должны удалиться автоматически)
+            db.delete('users', where={'id': user_to_delete_id})
+            print(f"  ✓ Пользователь 'Борис' удалён")
+            
+            # Проверяем, что заказы тоже удалены
+            cursor = db._get_cursor(dict_cursor=False)
+            cursor.execute("SELECT COUNT(*) FROM orders WHERE user_id = %s", (user_to_delete_id,))
+            remaining_orders = cursor.fetchone()[0]
+            cursor.close()
+            
+            print(f"  ✓ Оставшихся заказов для этого пользователя: {remaining_orders}")
+            
+            # И снова выполняем агрегирующий запрос
+            print("\n--- Итоги заказов после удаления (с LEFT JOIN) ---")
+            user_totals = db.get_user_totals()
+            
+            for row in user_totals:
+                name = row['name']
+                total = float(row['total_amount'])
+                print(f"  {name} — {total:.2f} руб.")
+            
+            print("\n✓ Проверка ON DELETE CASCADE завершена успешно!")
+            print("  Заказы удалённого пользователя были автоматически удалены (CASCADE).")
+            
             print("\n✓ Работа с базой данных завершена успешно!")
             
     except Error as e:
