@@ -508,12 +508,17 @@ class PostgreSQLDriver:
         if self.table_exists('users'):
             self.drop_table('users', cascade=True)
         
+        # Удаляем sequence если они есть (для SERIAL)
+        self.execute_query("DROP SEQUENCE IF EXISTS users_id_seq", commit=False)
+        self.execute_query("DROP SEQUENCE IF EXISTS orders_id_seq", commit=False)
+        
         # Создаём таблицу users
         users_query = """
             CREATE TABLE users (
-                id   SERIAL PRIMARY KEY,
+                id   SERIAL,
                 name TEXT NOT NULL,
                 age  INT,
+                CONSTRAINT users_pkey PRIMARY KEY (id),
                 CONSTRAINT users_age_check CHECK (age >= 0)
             )
         """
@@ -522,12 +527,14 @@ class PostgreSQLDriver:
         # Создаём таблицу orders
         orders_query = """
             CREATE TABLE orders (
-                id         SERIAL PRIMARY KEY,
+                id         SERIAL,
                 user_id    INT NOT NULL,
                 amount     NUMERIC(10,2) NOT NULL,
                 created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
+                CONSTRAINT orders_pkey PRIMARY KEY (id),
                 CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id)
-                    REFERENCES users (id)
+                    REFERENCES public.users (id) MATCH SIMPLE
+                    ON UPDATE NO ACTION
                     ON DELETE CASCADE
             )
         """
