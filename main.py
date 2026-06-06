@@ -32,24 +32,15 @@ def main():
         print("\n--- Создание таблицы orders ---")
         if db.table_exists('orders'):
             print("Таблица 'orders' существует, удаляю...")
-            db.drop_table('orders')
+            db.drop_table('orders', cascade=True)
         
         db.create_table('orders', {
-            'id': 'INTEGER NOT NULL',
-            'user_id': 'INTEGER NOT NULL',
-            'product_name': 'TEXT',
-            'quantity': 'INTEGER',
-            'price': 'DECIMAL(10, 2)',
-            'order_date': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
-        }, primary_key='id')
-        
-        # Добавляем внешний ключ для связи one-to-many
-        db.execute_query("""
-            ALTER TABLE orders 
-            ADD CONSTRAINT fk_orders_user 
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        """)
-        print("✓ Таблица 'orders' создана с внешним ключом к users")
+            'id': 'SERIAL PRIMARY KEY',
+            'user_id': 'INT NOT NULL REFERENCES users(id) ON DELETE CASCADE',
+            'amount': 'NUMERIC(10,2) NOT NULL',
+            'created_at': 'TIMESTAMP DEFAULT NOW()',
+        })
+        print("✓ Таблица 'orders' создана")
         
         # ==================== ЗАПОЛНЕНИЕ ДАННЫМИ ====================
         
@@ -73,37 +64,22 @@ def main():
         
         # Тестовые данные для orders (45 записей)
         print("\n--- Заполнение таблицы orders ---")
-        products = [
-            ('Ноутбук', 5, 75000.00),
-            ('Смартфон', 10, 25000.00),
-            ('Наушники', 3, 5000.00),
-            ('Монитор', 2, 18000.00),
-            ('Клавиатура', 4, 3500.00),
-            ('Мышь', 6, 1500.00),
-            ('Веб-камера', 2, 4500.00),
-            ('Принтер', 1, 12000.00),
-        ]
+        
+        import random
+        import datetime
         
         orders_data = []
         order_id = 1
         
         # Генерируем заказы для разных пользователей
-        import random
-        import datetime
-        
-        base_date = datetime.datetime(2025, 1, 1)
-        
         for _ in range(45):
             user_id = random.randint(1, 10)  # Случайный пользователь от 1 до 10
-            product, quantity, price = random.choice(products)
-            order_date = base_date + datetime.timedelta(days=random.randint(0, 365))
+            amount = round(random.uniform(100.0, 100000.0), 2)  # Случайная сумма от 100 до 100000
             
             orders_data.append({
                 'id': order_id,
                 'user_id': user_id,
-                'product_name': product,
-                'quantity': quantity,
-                'price': price,
+                'amount': amount,
             })
             order_id += 1
         
@@ -136,7 +112,7 @@ def main():
         print("\n--- Заказы пользователя ID=3 ---")
         user_orders = db.select_all('orders', where={'user_id': 3})
         for order in user_orders:
-            print(f"  Заказ ID={order['id']}: {order['product_name']} x{order['quantity']} = {order['price']} руб.")
+            print(f"  Заказ ID={order['id']}: сумма = {order['amount']} руб., дата = {order['created_at']}")
         
         # 6. Обновление данных
         print("\n--- Обновление данных ---")
@@ -152,7 +128,7 @@ def main():
         # 8. Запрос с JOIN (через execute_query_with_result)
         print("\n--- Заказы с именами пользователей (JOIN) ---")
         join_query = """
-            SELECT o.id as order_id, u.name as user_name, o.product_name, o.quantity, o.price
+            SELECT o.id as order_id, u.name as user_name, o.amount, o.created_at
             FROM orders o
             JOIN users u ON o.user_id = u.id
             ORDER BY o.id
@@ -160,7 +136,7 @@ def main():
         """
         join_results = db.execute_query_with_result(join_query)
         for row in join_results:
-            print(f"  Заказ #{row['order_id']}: {row['user_name']} купил {row['product_name']}")
+            print(f"  Заказ #{row['order_id']}: {row['user_name']} — {row['amount']} руб.")
         
         # 9. Удаление записи
         print("\n--- Удаление записи ---")
