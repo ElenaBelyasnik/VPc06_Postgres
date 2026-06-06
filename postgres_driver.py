@@ -492,3 +492,115 @@ class PostgreSQLDriver:
         cursor = self._get_cursor(dict_cursor=False)
         cursor.execute(query.as_string(self._connection))
         return cursor.fetchone()[0]
+    
+    # ==================== СПЕЦИАЛИЗИРОВАННЫЕ МЕТОДЫ ДЛЯ users И orders ====================
+    
+    def create_tables(self) -> bool:
+        """
+        Создание таблиц users и orders.
+        
+        Returns:
+            True если успешно
+        """
+        # Если таблицы существуют — удаляем их для пересоздания
+        if self.table_exists('orders'):
+            self.drop_table('orders', cascade=True)
+        if self.table_exists('users'):
+            self.drop_table('users', cascade=True)
+        
+        # Создаём таблицу users
+        users_query = """
+            CREATE TABLE IF NOT EXISTS users (
+                id   SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                age  INT CHECK (age >= 0)
+            )
+        """
+        self.execute_query(users_query)
+        
+        # Создаём таблицу orders
+        orders_query = """
+            CREATE TABLE IF NOT EXISTS orders (
+                id         SERIAL PRIMARY KEY,
+                user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                amount     NUMERIC(10,2) NOT NULL,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        """
+        self.execute_query(orders_query)
+        
+        return True
+    
+    def add_user(self, name: str, age: int) -> Optional[int]:
+        """
+        Добавление пользователя.
+        
+        Args:
+            name: Имя пользователя
+            age: Возраст пользователя
+        
+        Returns:
+            ID созданного пользователя или None
+        """
+        cursor = self._get_cursor(dict_cursor=False)
+        try:
+            cursor.execute(
+                "INSERT INTO users (name, age) VALUES (%s, %s) RETURNING id",
+                (name, age)
+            )
+            result = cursor.fetchone()
+            self._connection.commit()
+            return result[0] if result else None
+        except Error as e:
+            self._connection.rollback()
+            raise e
+        finally:
+            cursor.close()
+    
+    def add_order(self, user_id: int, amount: float) -> Optional[int]:
+        """
+        Добавление заказа.
+        
+        Args:
+            user_id: ID пользователя
+            amount: Сумма заказа
+        
+        Returns:
+            ID созданного заказа или None
+        """
+        cursor = self._get_cursor(dict_cursor=False)
+        try:
+            cursor.execute(
+                "INSERT INTO orders (user_id, amount) VALUES (%s, %s) RETURNING id",
+                (user_id, amount)
+            )
+            result = cursor.fetchone()
+            self._connection.commit()
+            return result[0] if result else None
+        except Error as e:
+            self._connection.rollback()
+            raise e
+        finally:
+            cursor.close()
+    
+    def get_user_totals(self) -> List[Dict[str, Any]]:
+        """
+        Получение суммы заказов по каждому пользователю.
+        
+        Returns:
+            Список словарей {name, total_amount}
+        """
+        query = """
+            SELECT u.name,
+                   COALESCE(SUM(o.amount), 0) AS total_amount
+            FROM users u
+            LEFT JOIN orders o ON o.user_id = u.id
+            GROUP BY u.id, u.name
+            ORDER BY total_amount DESC
+        """
+        cursor = self._get_cursor(dict_cursor=True)
+        try:
+            cursor.execute(query)
+            return [dict(row) for row in cursor.fetchall()]
+        finally:
+            cursor.close()
