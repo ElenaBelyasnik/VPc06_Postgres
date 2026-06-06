@@ -16,7 +16,9 @@
   - Контекстный менеджер (`__enter__`, `__exit__`)
 
 - **Создание таблиц:**
-  - `create_tables()` — создание таблиц `users` и `orders`
+  - `create_tables()` — создание таблиц `users` и `orders` с констрайнтами:
+    - `users`: PRIMARY KEY, CHECK (age >= 0)
+    - `orders`: PRIMARY KEY, FOREIGN KEY с ON DELETE CASCADE
 
 - **CRUD-операции:**
   - `add_user(name, age)` — добавление пользователя
@@ -39,13 +41,17 @@
    CREATE TABLE users (
        id   SERIAL PRIMARY KEY,
        name TEXT NOT NULL,
-       age  INT CHECK (age >= 0)
+       age  INT,
+       CONSTRAINT users_age_check CHECK (age >= 0)
    );
    CREATE TABLE orders (
        id         SERIAL PRIMARY KEY,
-       user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+       user_id    INT NOT NULL,
        amount     NUMERIC(10,2) NOT NULL,
-       created_at TIMESTAMP DEFAULT NOW()
+       created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
+       CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id)
+           REFERENCES users (id)
+           ON DELETE CASCADE
    );
    ```
 3. **Добавляет данные:**

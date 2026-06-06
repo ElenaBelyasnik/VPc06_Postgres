@@ -12,7 +12,33 @@
 ├── .env                    # Настройки подключения (не коммитится)
 ├── .envExample             # Шаблон настроек
 ├── .gitignore              # Исключения для Git
-└── README.md               # Эта документация
+├── README.md               # Эта документация
+└── PROMPT.md               # Описание промпта создания проекта
+```
+
+## Структура таблиц
+
+### Таблица users
+```sql
+CREATE TABLE users (
+    id   SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    age  INT,
+    CONSTRAINT users_age_check CHECK (age >= 0)
+);
+```
+
+### Таблица orders
+```sql
+CREATE TABLE orders (
+    id         SERIAL PRIMARY KEY,
+    user_id    INT NOT NULL,
+    amount     NUMERIC(10,2) NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
+    CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id)
+        REFERENCES users (id)
+        ON DELETE CASCADE
+);
 ```
 
 ## Требования

@@ -510,21 +510,25 @@ class PostgreSQLDriver:
         
         # Создаём таблицу users
         users_query = """
-            CREATE TABLE IF NOT EXISTS users (
+            CREATE TABLE users (
                 id   SERIAL PRIMARY KEY,
                 name TEXT NOT NULL,
-                age  INT CHECK (age >= 0)
+                age  INT,
+                CONSTRAINT users_age_check CHECK (age >= 0)
             )
         """
         self.execute_query(users_query)
         
         # Создаём таблицу orders
         orders_query = """
-            CREATE TABLE IF NOT EXISTS orders (
+            CREATE TABLE orders (
                 id         SERIAL PRIMARY KEY,
-                user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                user_id    INT NOT NULL,
                 amount     NUMERIC(10,2) NOT NULL,
-                created_at TIMESTAMP DEFAULT NOW()
+                created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
+                CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id)
+                    REFERENCES users (id)
+                    ON DELETE CASCADE
             )
         """
         self.execute_query(orders_query)
