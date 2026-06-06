@@ -150,6 +150,24 @@ columns = db.get_table_columns('users')
 count = db.get_row_count('users')
 ```
 
+### Специализированные методы для users и orders
+
+```python
+# Создание таблиц users и orders
+db.create_tables()
+
+# Добавление пользователя
+user_id = db.add_user('John Doe', 28)
+
+# Добавление заказа
+order_id = db.add_order(user_id, 99.99)
+
+# Получение суммы заказов по пользователям
+totals = db.get_user_totals()
+for row in totals:
+    print(f"{row['name']}: {row['total_amount']}")
+```
+
 ## Методы класса PostgreSQLDriver
 
 | Метод | Описание |
@@ -157,6 +175,7 @@ count = db.get_row_count('users')
 | `connect()` | Установить подключение к БД |
 | `disconnect()` | Закрыть подключение к БД |
 | `create_table()` | Создать таблицу |
+| `create_tables()` | Создать таблицы users и orders |
 | `drop_table()` | Удалить таблицу |
 | `insert()` | Вставить одну запись |
 | `insert_many()` | Массовая вставка записей |
@@ -168,6 +187,12 @@ count = db.get_row_count('users')
 | `execute_query_with_result()` | Выполнить SELECT с возвратом результатов |
 | `execute_many()` | Массовое выполнение запросов |
 | `execute_in_transaction()` | Выполнить запросы в транзакции |
+| `begin_transaction()` | Начать транзакцию |
+| `commit()` | Зафиксировать транзакцию |
+| `rollback()` | Откатить транзакцию |
+| `add_user(name, age)` | Добавить пользователя |
+| `add_order(user_id, amount)` | Добавить заказ |
+| `get_user_totals()` | Сумма заказов по пользователям (LEFT JOIN) |
 | `table_exists()` | Проверить существование таблицы |
 | `get_table_columns()` | Получить колонки таблицы |
 | `get_row_count()` | Получить количество записей |
